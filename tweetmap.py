@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import copy
 import csv
 import fileinput
@@ -7,11 +8,11 @@ import functools
 import json
 import multiprocessing
 import sys
+import textwrap
 
 from collections import Counter
 from colorsys import hls_to_rgb
 from descartes import PolygonPatch
-from enum import Enum
 from matplotlib import pyplot
 from matplotlib.colors import rgb2hex
 from numbers import Number
@@ -81,11 +82,6 @@ class ProjectedFeatures:
     def y_bounds(self):
         return [self.min_y * 1.05, self.max_y * 1.05]
 
-class LocationFormat(Enum):
-    lat_lon_array = 1
-    lon_lat_array = 2
-    lat_lon_dict = 3
-
 class ExtractLocation:
 
     def __init__(self, keypath, location_format):
@@ -95,12 +91,14 @@ class ExtractLocation:
     def __call__(self, obj):
         try:
             location = functools.reduce(lambda o, p: o[p], self.keypath, obj)
-            if self.location_format == LocationFormat.lat_lon_array:
+            if self.location_format == "lat-lon-array":
                 return reversed(location)
-            elif self.location_format == LocationFormat.lon_lat_array:
+            elif self.location_format == "lon-lat-array":
                 return location
-            elif self.location_format == LocationFormat.lat_lon_dict:
+            elif self.location_format == "lat-lon-dict":
                 return [location["lon"], location["lat"]]
+            else:
+                raise ValueError("Invalid location format: \"%s\"" % self.location_format)
         except (KeyError, IndexError, TypeError):
             return None
 
@@ -123,14 +121,64 @@ def shape2patches(s, **kwargs):
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+
+    parser.add_argument("-k", "--key-path",
+        default=["coordinates", "coordinates"],
+        help=textwrap.dedent("""\
+            Key path to location coordinates within Tweet
+
+            coordinates coordinates for Twitter API Tweets
+            See https://dev.twitter.com/overview/api/tweets
+
+            geo coordinates for Gnip Activity Streams
+            See http://support.gnip.com/sources/twitter/data_format.html"""),
+        nargs="+")
+    parser.add_argument("-l", "--location-format",
+        choices=["lat-lon-array", "lon-lat-array", "lat-lon-dict"],
+        default="lon-lat-array",
+        help=textwrap.dedent("""\
+            Format of coordinates within Tweet
+
+            lon-lat-array for Twitter API Tweets
+            See https://dev.twitter.com/overview/api/tweets
+
+            lat-lon-array for Gnip Activity Streams
+            See http://support.gnip.com/sources/twitter/data_format.html"""))
+    parser.add_argument("-p", "--projection",
+        default="albersUsa",
+        help=textwrap.dedent("""\
+            Map projection to use
+            See pyproj.pj_list for available projections
+            http://jswhit.github.io/pyproj/pyproj-module.html#pj_list"""))
+    parser.add_argument("-f", "--features-file",
+        default="feature_sets/us_states.geo.json",
+        help=textwrap.dedent("""\
+            File containing features to locate Tweets in
+            File must contain a GeoJSON formatted FeatureCollection object
+            See http://geojson.org/geojson-spec.html#feature-collection-objects"""))
+    parser.add_argument("-o", "--output-file",
+        help=textwrap.dedent("""\
+            Path to output heatmap image to
+            Image format will be determined by file extension
+            Formats supported by matplotlib can be used
+            See http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.savefig"""))
+    parser.add_argument("data_files",
+        help=textwrap.dedent("""\
+            Files containing Tweets to locate
+            Each file must contain one JSON encoded Tweet per line"""),
+        nargs="+")
+
+    args = parser.parse_args(sys.argv[1:])
+
     features = None
-    with open("feature_sets/us_states.geo.json", "r") as f:
+    with open(args.features_file, "r") as f:
         features = json.loads(f.read())["features"]
 
-    extract = ExtractLocation(["geo", "coordinates"], LocationFormat.lat_lon_array)
+    extract = ExtractLocation(args.key_path, args.location_format)
     counter = Counter()
     pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-    for feature_id in pool.imap_unordered(functools.partial(locate_tweet, features, extract), fileinput.input(), chunksize=10):
+    for feature_id in pool.imap_unordered(functools.partial(locate_tweet, features, extract), fileinput.input(files=args.data_files), chunksize=10):
         counter[feature_id] = counter[feature_id] + 1
     pool.close()
     pool.join()
@@ -147,8 +195,12 @@ if __name__ == "__main__":
         rgb = hls_to_rgb(0.6, l, 1)
         return rgb2hex(list(rgb))
 
-    projected_features = ProjectedFeatures(AlbersUsaProjection(), features)
-    #projected_features = ProjectedFeatures(Proj(proj="merc"), features)
+    projection = None
+    if args.projection == "albersUsa":
+        projection = AlbersUsaProjection()
+    else:
+        projection = Proj(proj=args.projection)
+    projected_features = ProjectedFeatures(projection, features)
 
     fig = pyplot.figure(1, figsize=(10,5))
     plot = fig.add_subplot(111, xlim=projected_features.x_bounds(), ylim=projected_features.y_bounds())
@@ -169,6 +221,8 @@ if __name__ == "__main__":
     if counter[None]:
         writer.writerow(["Unknown Location", counter[None]])
 
-    #pyplot.axis("off")
-    #pyplot.savefig("test.svg", format="svg", bbox_inches="tight")
-    pyplot.show()
+    pyplot.axis("off")
+    if args.output_file:
+        pyplot.savefig(args.output_file, format="svg", bbox_inches="tight")
+    else:
+        pyplot.show()
