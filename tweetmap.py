@@ -104,10 +104,13 @@ class ExtractLocation:
 
 def locate_tweet(features, extract_location, tweet):
     tweet = json.loads(tweet)
-    location = Point(extract_location(tweet))
+    location = extract_location(tweet)
+    if not location:
+        return None
+    location_point = Point(location)
     for feature in features:
         s = shape(feature["geometry"])
-        if s.contains(location):
+        if s.contains(location_point):
             return feature["properties"]["id"]
     return None
 
@@ -182,6 +185,10 @@ if __name__ == "__main__":
         counter[feature_id] = counter[feature_id] + 1
     pool.close()
     pool.join()
+
+    if len(list(counter)) == 1 and list(counter)[0] == None:
+        print("Unable to locate any tweets", file=sys.stderr)
+        sys.exit(1)
 
     # Get the highest Tweet count for a feature
     most_common = counter.most_common(2)
