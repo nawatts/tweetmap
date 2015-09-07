@@ -42,6 +42,9 @@ tweetmap.py [-h] [-k KEY_PATH [KEY_PATH ...]]
     File containing features to locate Tweets in<br/>
     File must contain a GeoJSON formatted [FeatureCollection](http://geojson.org/geojson-spec.html#feature-collection-objects) object
 
+* `--hue HUE`<br>
+    Hue (in range of [0, 1.0]) of shading on map
+
 * `-o OUTPUT_FILE, --output-file OUTPUT_FILE`<br/>
     Path to output heatmap image to<br/>
     Image format will be determined by file extension<br/>

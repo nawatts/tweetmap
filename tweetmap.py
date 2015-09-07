@@ -160,6 +160,10 @@ if __name__ == "__main__":
             File containing features to locate Tweets in
             File must contain a GeoJSON formatted FeatureCollection object
             See http://geojson.org/geojson-spec.html#feature-collection-objects"""))
+    parser.add_argument("--hue",
+        default=0.6,
+        type=float,
+        help="Hue (in range of [0, 1.0]) of shading on map")
     parser.add_argument("-o", "--output-file",
         help=textwrap.dedent("""\
             Path to output heatmap image to
@@ -199,7 +203,7 @@ if __name__ == "__main__":
     def feature_fill_color(count, max_count):
         c = count / max_count
         l = 0.5 + (1 - c) / 2
-        rgb = hls_to_rgb(0.6, l, 1)
+        rgb = hls_to_rgb(args.hue, l, 1)
         return rgb2hex(list(rgb))
 
     projection = None
