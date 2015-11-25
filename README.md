@@ -2,53 +2,60 @@
 
 Generate heatmaps from Tweets and GeoJSON features.
 
+## Installation:
 
-Usage:
-
-```
-tweetmap.py [-h] [-k KEY_PATH [KEY_PATH ...]]
-            [-l {lat-lon-array,lon-lat-array,lat-lon-dict}]
-            [-p PROJECTION] [-f FEATURES_FILE] [-o OUTPUT_FILE]
-            data_files [data_files ...]
+Mac OS:
+```Shell
+brew install geos
+pip install -r requirements.txt
 ```
 
-* `data_files`<br/>
-    Files containing Tweets to locate<br/>
-    Each file must contain one JSON encoded Tweet per line
+## Usage:
 
-* `-h, --help`<br/>
-    Show this help message and exit
+```
+usage: tweetmap.py [-h] [-k KEY_PATH [KEY_PATH ...]]
+                   [-l {lat-lon-array,lon-lat-array,lat-lon-dict}]
+                   [-p PROJECTION] [-f FEATURES_FILE] [--hue HUE]
+                   [-o OUTPUT_FILE]
+                   data_files [data_files ...]
 
-* `-k KEY_PATH [KEY_PATH ...], --key-path KEY_PATH [KEY_PATH ...]`<br/>
-    Key path to location coordinates within Tweet
+positional arguments:
+  data_files            Files containing Tweets to locate
+                        Each file must contain one JSON encoded Tweet per line
 
-    `coordinates coordinates` for [Twitter API Tweets](https://dev.twitter.com/overview/api/tweets)
+optional arguments:
+  -h, --help            show this help message and exit
+  -k KEY_PATH [KEY_PATH ...], --key-path KEY_PATH [KEY_PATH ...]
+                        Key path to location coordinates within Tweet
 
-    `geo coordinates` for [Gnip Activity Streams](http://support.gnip.com/sources/twitter/data_format.html)
+                        coordinates coordinates for Twitter API Tweets
+                        See https://dev.twitter.com/overview/api/tweets
 
-* ```-l {lat-lon-array,lon-lat-array,lat-lon-dict},
---location-format {lat-lon-array,lon-lat-array,lat-lon-dict}```<br/>
-    Format of coordinates within Tweet
+                        geo coordinates for Gnip Activity Streams
+                        See http://support.gnip.com/sources/twitter/data_format.html
+  -l {lat-lon-array,lon-lat-array,lat-lon-dict}, --location-format {lat-lon-array,lon-lat-array,lat-lon-dict}
+                        Format of coordinates within Tweet
 
-    `lon-lat-array` for [Twitter API Tweets](https://dev.twitter.com/overview/api/tweets)
+                        lon-lat-array for Twitter API Tweets
+                        See https://dev.twitter.com/overview/api/tweets
 
-    `lat-lon-array` for [Gnip Activity Streams](http://support.gnip.com/sources/twitter/data_format.html)
-
-* `-p PROJECTION, --projection PROJECTION`<br/>
-    Map projection to use<br/>
-    See [pyproj.pj_list](http://jswhit.github.io/pyproj/pyproj-module.html#pj_list) for available projections<br/>
-
-* `-f FEATURES_FILE, --features-file FEATURES_FILE`<br/>
-    File containing features to locate Tweets in<br/>
-    File must contain a GeoJSON formatted [FeatureCollection](http://geojson.org/geojson-spec.html#feature-collection-objects) object
-
-* `--hue HUE`<br>
-    Hue (in range of [0, 1.0]) of shading on map
-
-* `-o OUTPUT_FILE, --output-file OUTPUT_FILE`<br/>
-    Path to output heatmap image to<br/>
-    Image format will be determined by file extension<br/>
-    Formats supported by [matplotlib.pyplot.savefig](http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.savefig) can be used
+                        lat-lon-array for Gnip Activity Streams
+                        See http://support.gnip.com/sources/twitter/data_format.html
+  -p PROJECTION, --projection PROJECTION
+                        Map projection to use
+                        See pyproj.pj_list for available projections
+                        http://jswhit.github.io/pyproj/pyproj-module.html#pj_list
+  -f FEATURES_FILE, --features-file FEATURES_FILE
+                        File containing features to locate Tweets in
+                        File must contain a GeoJSON formatted FeatureCollection object
+                        See http://geojson.org/geojson-spec.html#feature-collection-objects
+  --hue HUE             Hue (in range of [0, 1.0]) of shading on map
+  -o OUTPUT_FILE, --output-file OUTPUT_FILE
+                        Path to output heatmap image to
+                        Image format will be determined by file extension
+                        Formats supported by matplotlib can be used
+                        See http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.savefig
+```
 
 ### Feature Sets GeoJSON
 
